@@ -3,6 +3,7 @@ using System.Collections;
 
 public class PlayerInput : MonoBehaviour {
 
+	public float crawlModifier = 0.5f;
 	public float walkSpeed = 2;
 	public float runSpeed = 6;
 	public float initialJumpForce = 5;
@@ -18,6 +19,7 @@ public class PlayerInput : MonoBehaviour {
 	private bool beginJump = false;
 	private bool jumping = false;
 	private bool running = false;
+	private bool crawling = false;
 	private float jumpTime = 0.0f;
 	private float currentJumpForce = 0.0f;
 
@@ -39,7 +41,15 @@ public class PlayerInput : MonoBehaviour {
 
 		grounded = false;
 
+		float groundCheckModifier = 1.0f;
+
 		foreach (var groundCheck in groundChecks) {
+			if (crawling) {
+				groundCheck.localPosition = new Vector3(groundCheck.localPosition.x, -0.22f, 0f);
+			} else {
+				groundCheck.localPosition = new Vector3(groundCheck.localPosition.x, -0.337758f, 0f);
+			}
+
 			if (Physics2D.Linecast(transform.position, groundCheck.position, 1 << LayerMask.NameToLayer("Ground"))) {
 				grounded = true;
 				break;
@@ -74,6 +84,14 @@ public class PlayerInput : MonoBehaviour {
 	}
 
 	void FixedUpdate () {
+
+		float directionY = Input.GetAxis ("Vertical");
+
+		if (directionY <= -0.5f) {
+			crawling = true;
+		} else {
+			crawling = false;
+		}
 	
 		float directionX = Input.GetAxis ("Horizontal");
 
@@ -87,13 +105,27 @@ public class PlayerInput : MonoBehaviour {
 			moveSpeed = walkSpeed;
 		}
 
+		if (crawling) {
+			//account for joystick being less horizontal if crouching to get max speed
+			directionX = Mathf.Min(1.0f, Mathf.Abs(directionX) * 2) * Mathf.Sign(directionX);
+
+			//modify move speed by crawling factor
+			moveSpeed = moveSpeed * crawlModifier;
+			((BoxCollider2D)collider2D).size = new Vector2(0.22f, 0.13f);
+		} else {
+			((BoxCollider2D)collider2D).size = new Vector2(0.22f, 0.4f);
+		}
+
+
 			desiredVelocityX = moveSpeed * directionX;
 
 		if (animator) {
 
+			animator.SetBool("isCrawling", crawling);
+
 			if (desiredVelocityX != 0.0f) {
 				animator.SetBool("isWalking", true);
-				animator.speed = Mathf.Abs(directionX);
+				animator.speed = Mathf.Abs(desiredVelocityX * 0.5f);
 
 				float velocityDirection = Mathf.Sign(desiredVelocityX);
 				if (velocityDirection != Mathf.Sign(this.transform.localScale.x)) {
