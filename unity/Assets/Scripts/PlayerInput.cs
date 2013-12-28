@@ -11,6 +11,8 @@ public class PlayerInput : MonoBehaviour {
 	public float jumpDecay = 0.25f;
 	public Transform[] groundChecks;
 
+	public Animator animator;
+
 	public PhysicsMaterial2D noFrictionMaterial;
 
 	private bool beginJump = false;
@@ -86,6 +88,22 @@ public class PlayerInput : MonoBehaviour {
 		}
 
 			desiredVelocityX = moveSpeed * directionX;
+
+		if (animator) {
+
+			if (desiredVelocityX != 0.0f) {
+				animator.SetBool("isWalking", true);
+				animator.speed = Mathf.Abs(directionX);
+
+				float velocityDirection = Mathf.Sign(desiredVelocityX);
+				if (velocityDirection != Mathf.Sign(this.transform.localScale.x)) {
+					this.transform.localScale = new Vector3(this.transform.localScale.x * -1, this.transform.localScale.y);
+				}
+			} else {
+				animator.SetBool("isWalking", false);
+			}
+
+		}
 		//}
 
 		float velocityX = Mathf.Lerp(rigidbody2D.velocity.x, desiredVelocityX, Time.fixedDeltaTime * 10);
@@ -139,7 +157,6 @@ public class PlayerInput : MonoBehaviour {
 		}
 
 		beginJump = false;
-
 
 
 		rigidbody2D.velocity = new Vector2(velocityX, velocityY);
